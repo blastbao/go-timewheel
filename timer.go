@@ -324,10 +324,7 @@ func (tw *TimeWheel) putCircle(task *Task, circleMode bool) {
 	tw.store(task, circleMode)
 }
 
-
 func (tw *TimeWheel) store(task *Task, circleMode bool) {
-
-
 
 	round := tw.calculateRound(task.delay)
 	index := tw.calculateIndex(task.delay)
@@ -381,14 +378,21 @@ func (tw *TimeWheel) remove(task *Task) {
 
 
 func (tw *TimeWheel) NewTimer(delay time.Duration) *Timer {
+
+
 	queue := make(chan bool, 1) // buf = 1, refer to src/time/sleep.go
-	task := tw.addAny(delay,
+
+
+
+	task := tw.addAny(
+		delay,
 		func() {
 			notfiyChannel(queue)
 		},
 		modeNotCircle,
 		modeNotAsync,
 	)
+
 
 	// init timer
 	ctx, cancel := context.WithCancel(context.Background())
@@ -400,20 +404,28 @@ func (tw *TimeWheel) NewTimer(delay time.Duration) *Timer {
 		cancel: cancel,
 	}
 
+
 	return timer
+
 }
 
 
 
 func (tw *TimeWheel) AfterFunc(delay time.Duration, callback func()) *Timer {
+
+
 	queue := make(chan bool, 1)
-	task := tw.addAny(delay,
+
+
+	task := tw.addAny(
+		delay,
 		func() {
 			callback()
 			notfiyChannel(queue)
 		},
 		modeNotCircle, modeIsAsync,
 	)
+
 
 	// init timer
 	ctx, cancel := context.WithCancel(context.Background())
@@ -432,8 +444,12 @@ func (tw *TimeWheel) AfterFunc(delay time.Duration, callback func()) *Timer {
 
 
 func (tw *TimeWheel) NewTicker(delay time.Duration) *Ticker {
+
+
 	queue := make(chan bool, 1)
-	task := tw.addAny(delay,
+
+	task := tw.addAny(
+		delay,
 		func() {
 			notfiyChannel(queue)
 		},
@@ -443,6 +459,8 @@ func (tw *TimeWheel) NewTicker(delay time.Duration) *Ticker {
 
 	// init ticker
 	ctx, cancel := context.WithCancel(context.Background())
+
+
 	ticker := &Ticker{
 		task:   task,
 		tw:     tw,
@@ -451,32 +469,43 @@ func (tw *TimeWheel) NewTicker(delay time.Duration) *Ticker {
 		cancel: cancel,
 	}
 
+
 	return ticker
 }
 
 
 
 func (tw *TimeWheel) After(delay time.Duration) <-chan time.Time {
+
 	queue := make(chan time.Time, 1)
-	tw.addAny(delay,
+
+	tw.addAny(
+		delay,
 		func() {
 			queue <- time.Now()
 		},
-		modeNotCircle, modeNotAsync,
+		modeNotCircle,
+		modeNotAsync,
 	)
+
 	return queue
 }
 
 
 
 func (tw *TimeWheel) Sleep(delay time.Duration) {
+
 	queue := make(chan bool, 1)
-	tw.addAny(delay,
+
+	tw.addAny(
+		delay,
 		func() {
 			queue <- true
 		},
-		modeNotCircle, modeNotAsync,
+		modeNotCircle,
+		modeNotAsync,
 	)
+
 	<-queue
 }
 
@@ -498,19 +527,24 @@ type Timer struct {
 func (t *Timer) Reset(delay time.Duration) {
 	var task *Task
 	if t.fn != nil { // use AfterFunc
-		task = t.tw.addAny(delay,
+		task = t.tw.addAny(
+			delay,
 			func() {
 				t.fn()
 				notfiyChannel(t.C)
 			},
-			modeNotCircle, modeIsAsync, // must async mode
+			modeNotCircle,
+			modeIsAsync, // must async mode
 		)
 	} else {
-		task = t.tw.addAny(delay,
+		task = t.tw.addAny(
+			delay,
 			func() {
 				notfiyChannel(t.C)
 			},
-			modeNotCircle, modeNotAsync)
+			modeNotCircle,
+			modeNotAsync,
+		)
 	}
 
 	t.task = task
@@ -549,16 +583,12 @@ func (t *Ticker) Stop() {
 	t.tw.Remove(t.task)
 }
 
-
-
 func notfiyChannel(q chan bool) {
 	select {
 	case q <- true:
 	default:
 	}
 }
-
-
 
 func (tw *TimeWheel) genUniqueID() taskID {
 	id := atomic.AddInt64(&tw.randomID, 1)

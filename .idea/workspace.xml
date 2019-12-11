@@ -44,8 +44,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/timer.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="685">
-              <caret line="252" lean-forward="true" selection-start-line="252" selection-end-line="252" />
+            <state relative-caret-position="848">
+              <caret line="545" column="12" selection-start-line="545" selection-start-column="12" selection-end-line="545" selection-end-column="12" />
               <folding>
                 <element signature="e#19#81#0" expanded="true" />
               </folding>
@@ -276,8 +276,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/timer.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="685">
-          <caret line="252" lean-forward="true" selection-start-line="252" selection-end-line="252" />
+        <state relative-caret-position="848">
+          <caret line="545" column="12" selection-start-line="545" selection-start-column="12" selection-end-line="545" selection-end-column="12" />
           <folding>
             <element signature="e#19#81#0" expanded="true" />
           </folding>
