@@ -196,11 +196,14 @@ func (tw *TimeWheel) Stop() {
 }
 
 
-// ?
+// 回收 task 对象
 func (tw *TimeWheel) collectTask(task *Task) {
-	delete(tw.bucketIndexes, task.id)
-	delete(tw.buckets[tw.currentIndex], task.id)
 
+	// 删除正向关系: bucketIndexes[task.id] => bucket index
+	delete(tw.bucketIndexes, task.id)
+	// 删除反向关系: buckets[index][task.id] => task
+	delete(tw.buckets[tw.currentIndex], task.id)
+	// 回收 task 对象，以便再利用
 	if tw.syncPool {
 		defaultTaskPool.put(task)
 	}
@@ -208,37 +211,42 @@ func (tw *TimeWheel) collectTask(task *Task) {
 
 func (tw *TimeWheel) handleTick() {
 
-
+	// 取出当前 tick 对应的 bucket
 	bucket := tw.buckets[tw.currentIndex]
 
+	// 遍历当前 bucket 内的任务
 	for k, task := range bucket {
 
-
+		// 对已结束任务进行清理和回收，以便再利用
 		if task.stop {
 			tw.collectTask(task)
 			continue
 		}
 
+		// 如果 round 非 0 意味着当前轮次不应执行，进行 round-- 后 continue
 		if bucket[k].round > 0 {
 			bucket[k].round--
 			continue
 		}
 
+		// 如果是异步执行任务，就通过 go 后台执行，否则同步调用等待处理完毕。
 		if task.async {
 
 			go task.callback()
 
 		} else {
-
+			// ???
 			// 这里有个疑问，因为 index 的增加是定时器驱动的，如果同步调用发生阻塞且耗时超过一个 tick ，
 			// 那么会导致整体的延迟累积，整体的定时都会滞后。
 
-			// optimize gopool
+			// TODO: optimize gopool
 			task.callback()
 		}
 
 		// circle
 		if task.circle == true {
+			// ???
+			// 这里是不是会有很多重复的无效调用，或者应该放到 `tw.collectTask(task)` 后面执行？
 			tw.putCircle(task, modeIsCircle)
 			continue
 		}
@@ -330,14 +338,13 @@ func (tw *TimeWheel) store(task *Task, circleMode bool) {
 		task.round = round
 	}
 
-
+	// 保存 `task` 和 `bucket` 的映射关系
+	//  (1) 正向关系: task.id => bucket index
 	tw.bucketIndexes[task.id] = index
+	//  (2) 反向关系: bucket[index][task.id] => task
 	tw.buckets[index][task.id] = task
 
-
 }
-
-
 
 func (tw *TimeWheel) calculateRound(delay time.Duration) (round int) {
 	delaySeconds := delay.Seconds()
@@ -346,12 +353,15 @@ func (tw *TimeWheel) calculateRound(delay time.Duration) (round int) {
 	return
 }
 
-
-
 func (tw *TimeWheel) calculateIndex(delay time.Duration) (index int) {
 	delaySeconds := delay.Seconds()
 	tickSeconds := tw.tick.Seconds()
 	index = (int(float64(tw.currentIndex) + delaySeconds/tickSeconds)) % tw.bucketsNum
+
+	// 注意，根据 handleTick 函数可知 tw.currentIndex = (tw.currentIndex + 1 ) % len(tw.bucketsNum)，
+	// 所以 tw.currentIndex 数值不可能超过 tw.bucketsNum，因此上面 index 的计算公式可以简化为更易于理解的方式：
+	// index = tw.currentIndex + (delaySeconds/tickSeconds) % tw.bucketsNum
+
 	return
 }
 
